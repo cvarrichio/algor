@@ -1,7 +1,7 @@
 #include <R.h>
 #include <Rdefines.h>
 #include <algorithm>
-#include <string.h>
+#include <string>
 #include <vector>
 #include <numeric>
 #include <iostream>
@@ -35,6 +35,7 @@ SEXP sortcpp(SEXP x) {
       std::sort(STRING_PTR(x), STRING_PTR(x) + LENGTH(x), cmp_char);
       break;
     default:
+      UNPROTECT(1);
       error_return("Unsupported type for sort.")
       ;
   }
@@ -52,101 +53,25 @@ struct CMP_INT {
   }
 };
 
-
-// [[Rcpp::export]]
-SEXP ordercpp(SEXP x) {
-  
-  //std::cout << TYPEOF(x);
-  //int* xpoint = INTEGER(x); //Pointer to int array of input x
-  
-  SEXP result = PROTECT(allocVector(INTSXP,LENGTH(x)));
-  int* respoint = INTEGER(result);
-  int* start = &INTEGER(x)[0];
-
-  for (int i = 0; i < LENGTH(x); i++)
-  {
-    //std::cout << *(start+i);
-    respoint[i] = i+1; //shift compensates for difference between R and C indexing
+struct CMP_REAL {
+  double* start;
+  CMP_REAL(double* start) : start(start) {};
+  bool operator()(int x, int y) {
+    return *(start+x-1) - *(start+y-1) < 0;
   }
-  std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_INT(start));
-
-  //   std::vector<int> v;  //   v.assign(respoint,respoint + LENGTH(result));  //int* a = &v[0];
-  
-  UNPROTECT(1);
-  return(result);
-
-}
+};
 
 struct CMP_CHAR2 {
   SEXP* start;
   CMP_CHAR2(SEXP* start) : start(start) {};
   bool operator()(int x, int y) {
-    return strcmp(CHAR(*(start+x-1)),CHAR(*(start+y-1))) < 0;
+    return strcmp(CHAR(*(start+x-1)),CHAR(*(start+y-1))) < 0; // shift compensates for difference between R and C indexing
   }
 };
 
 
 // [[Rcpp::export]]
-SEXP ordercpp2(SEXP x) {
-  
-  //std::cout << TYPEOF(x);
-  //int* xpoint = INTEGER(x); //Pointer to int array of input x
-  
-  SEXP result = PROTECT(allocVector(INTSXP,LENGTH(x)));
-  int* respoint = INTEGER(result);
-  SEXP* start = &STRING_PTR(x)[0];
-  
-  for (int i = 0; i < LENGTH(x); i++)
-  {
-    //std::cout << *(start+i);
-    respoint[i] = i+1; //shift compensates for difference between R and C indexing
-  }
-  std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_CHAR2(start));
-  
-  //   std::vector<int> v;  //   v.assign(respoint,respoint + LENGTH(result));  //int* a = &v[0];
-  
-  UNPROTECT(1);
-  return(result);
-  
-}
-// 
-// struct CMP_CHAR2 {
-//   SEXP* start;
-//   CMP_CHAR2(SEXP* start) : start(start) {};
-//   bool operator()(int x, int y) {
-//     return strcmp(CHAR(*(start+x-1)),CHAR(*(start+y-1))) < 0;
-//   }
-// };
-// 
-// 
-// // [[Rcpp::export]]
-// SEXP ordercpp2(SEXP x) {
-//   
-//   //std::cout << TYPEOF(x);
-//   //int* xpoint = INTEGER(x); //Pointer to int array of input x
-//   
-//   SEXP result = PROTECT(allocVector(INTSXP,LENGTH(x)));
-//   int* respoint = INTEGER(result);
-//   SEXP* start = &STRING_PTR(x)[0];
-//   
-//   for (int i = 0; i < LENGTH(x); i++)
-//   {
-//     //std::cout << *(start+i);
-//     respoint[i] = i+1; //shift compensates for difference between R and C indexing
-//   }
-//   std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_CHAR2(start));
-//   
-//   //   std::vector<int> v;  //   v.assign(respoint,respoint + LENGTH(result));  //int* a = &v[0];
-//   
-//   UNPROTECT(1);
-//   return(result);
-//   
-// }
-
-
-
-// [[Rcpp::export]]
-SEXP ordercpp3(SEXP x) {
+SEXP ordercpp(SEXP x) {
   
   //std::cout << TYPEOF(x);
   //int* xpoint = INTEGER(x); //Pointer to int array of input x
@@ -167,11 +92,17 @@ SEXP ordercpp3(SEXP x) {
     break;
   }
   case REALSXP:
-    std::sort(REAL(x),REAL(x)+LENGTH(x));
+  {
+    double* start = &REAL(x)[0];
+    std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_REAL(start));
     break;
+  }
   case LGLSXP:
-    std::sort(LOGICAL(x),LOGICAL(x)+LENGTH(x));
+  {
+    int* start = &INTEGER(x)[0];
+    std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_INT(start));
     break;
+  }
   case STRSXP:
   {
     SEXP* start = &STRING_PTR(x)[0];
@@ -179,6 +110,7 @@ SEXP ordercpp3(SEXP x) {
     break;
   }
   default:
+    UNPROTECT(1);
     error_return("Unsupported type for sort.")
     ;
   }
