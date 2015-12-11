@@ -3,9 +3,9 @@
 #' Implements cast, aggregate, and join for \code{\link{Matrix}} and matrix-like
 #' objects.
 #' 
-#' @name cutils
+#' @name algor
 #' @docType package
-#' @useDynLib cutils
+#' @useDynLib algor
 NULL
 
 # chars<-as.character(sample(1e3,1e4,TRUE))
