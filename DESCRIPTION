@@ -1,4 +1,4 @@
-Package: cutils
+Package: algor
 Title: Tools for parsing and manipulating rpart objects, including generating
     machine readable rules.
 Version: 0.9
