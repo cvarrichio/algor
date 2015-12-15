@@ -14,7 +14,7 @@ struct CMP_CHAR {
 
 
 // [[Rcpp::export]]
-extern "C" SEXP sortcpp(SEXP x) {
+extern "C" SEXP csort(SEXP x) {
   
   //std::cout << TYPEOF(x);
   x = PROTECT(Rf_duplicate(x));
@@ -69,7 +69,7 @@ struct CMP_CHAR2 {
 
 
 // [[Rcpp::export]]
-extern "C" SEXP ordercpp(SEXP x) {
+extern "C" SEXP corder(SEXP x) {
   
   //std::cout << TYPEOF(x);
   //int* xpoint = INTEGER(x); //Pointer to int array of input x
@@ -193,29 +193,37 @@ extern "C" SEXP matches(SEXP a, SEXP b)
   indexsA.reserve(alength);
   std::vector<int> indexsB;
   indexsB.reserve(blength);
-  int a1 =1, a2 = 1, b1 = 1, b2 = 1;
+  int a1 =0, a2 = 0, b1 =0, b2 = 0;
   //
   int* astart = &INTEGER(a)[0];
   int* bstart = &INTEGER(b)[0];
   
-  while (a2 <= alength || b2 <= blength)
+  //matches(as.integer(c(1)),as.integer(c(1)))
+  while (a2 < alength || b2 < blength)
   {
     //if a1==a2 and  *(astart+a2)!=*(bstart+b1), then there is no match.
-    std::cout << alength << std::endl;
-    std::cout << a2 << ';';
-    std::cout << b2 << std::endl;
-    while(*(astart+a2-1)==*(bstart+b2-1) && a2<=alength && b2<=blength)
+    //std::cout << "1a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
+    //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
+    //std::cout << "1b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
+    while(a2<alength && b2<blength && *(astart+*(apoint+a2)-1)==*(bstart+*(bpoint+b2)-1))
     {
-      indexsA.push_back(a2);
-      indexsB.push_back(b2);
+      //std::cout<< "In 1!" << std::endl;
+      //std::cout << "1a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
+      //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
+      //std::cout << "1b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
+      indexsA.push_back(*(apoint+a2));
+      indexsB.push_back(*(bpoint+b2));
       b2++;
     }
+    //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
     if(b1!=b2)
     {
-      if(a2<alength)
+      //std::cout<< "In 2!" << std::endl;
+      if(a2<(alength-1))
       {
+        //std::cout<< "!In 3!" << std::endl;
         a2++;
-        if(*(astart+a2-1)==*(astart+a1-1))
+        if(*(astart+*(apoint+a2)-1)==*(astart+*(apoint+a1)-1))
           b2=b1;
         
         else
@@ -227,35 +235,29 @@ extern "C" SEXP matches(SEXP a, SEXP b)
       a2=++a1;
       continue;
     }
-    std::cout << a2 << ';';
-    std::cout << b2 << std::endl;
-    if(*(astart+a2-1)<*(bstart+b2-1) || b2>blength)
+    //std::cout << "2a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
+    //std::cout << "2b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
+    if(a2<alength && (b2>=blength || *(astart+*(apoint+a2)-1)<*(bstart+*(bpoint+b2)-1)))
     {
-      
-      indexsA.push_back(a2);
+      //std::cout<< "In 4!" << std::endl;
+      indexsA.push_back(*(apoint+a2));
       indexsB.push_back(blength+1);
       
         a1=++a2;
         continue;
     }
-    std::cout << a2 << ';';
-    std::cout << b2 << std::endl;
-    if(*(astart+a2-1)>*(bstart+b2-1) || a2>alength)
+    //std::cout << a2 << ';';
+    //std::cout << b2 << std::endl;
+    if(b2<blength && (a2>=alength || *(astart+*(apoint+a2)-1)>*(bstart+*(bpoint+b2)-1)))
     {
-      
+      //std::cout<< "In 5!" << std::endl;
       indexsA.push_back(alength+1);
-      indexsB.push_back(b2);
+      indexsB.push_back(*(bpoint+b2));
         b1=++b2;
         continue;
     }
     
-//     
-//     //if acmp==bcmp, 1.add acmp to indexsA 2. increase b2 3. compare again for b2
-//     b2++;
-//     //when loop is compl
-//     a2++;
-//     a1=a2;
-//     //if a2==a1, then b2<-b1. repeat
+
   }
   //Unfortunate overhead needed to convert vector to SEXP
   SEXP result1 = PROTECT(allocVector(INTSXP,indexsA.size()));

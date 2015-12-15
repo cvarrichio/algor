@@ -4,9 +4,8 @@
 \name{algor}
 \alias{algor}
 \alias{algor-package}
-\title{Data.frame-like operations on sparse and dense \code{Matrix} objects}
+\title{Faster implementations of base R functions, including sort, order, and match.}
 \description{
-Implements cast, aggregate, and join for \code{\link{Matrix}} and matrix-like
-objects.
+Faster implementations of base R functions, including sort, order, and match.
 }
 
