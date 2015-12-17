@@ -178,86 +178,54 @@ extern "C" SEXP ordercpp2(SEXP x) {
   
 }
 
-// [[Rcpp::export]]
-extern "C" SEXP matches(SEXP a, SEXP b)
+
+template<typename T>
+SEXP match(T astart, T bstart, int* apoint, int* bpoint, int alength, int blength)
 {
-  int alength = LENGTH(a);
-  int blength = LENGTH(b);
-  SEXP sortedA = PROTECT(allocVector(INTSXP,alength));
-  int* apoint = INTEGER(sortedA);
-  internalOrder(apoint,a);
-  SEXP sortedB = PROTECT(allocVector(INTSXP,blength));
-  int* bpoint = INTEGER(sortedB);
-  internalOrder(bpoint,b);
+  int a1 =0, a2 = 0, b1 =0, b2 = 0;
   std::vector<int> indexsA;
   indexsA.reserve(alength);
   std::vector<int> indexsB;
   indexsB.reserve(blength);
-  int a1 =0, a2 = 0, b1 =0, b2 = 0;
-  //
-  int* astart = &INTEGER(a)[0];
-  int* bstart = &INTEGER(b)[0];
-  
-  //matches(as.integer(c(1)),as.integer(c(1)))
   while (a2 < alength || b2 < blength)
   {
-    //if a1==a2 and  *(astart+a2)!=*(bstart+b1), then there is no match.
-    //std::cout << "1a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
-    //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
-    //std::cout << "1b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
     while(a2<alength && b2<blength && *(astart+*(apoint+a2)-1)==*(bstart+*(bpoint+b2)-1))
     {
-      //std::cout<< "In 1!" << std::endl;
-      //std::cout << "1a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
-      //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
-      //std::cout << "1b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
       indexsA.push_back(*(apoint+a2));
       indexsB.push_back(*(bpoint+b2));
       b2++;
     }
-    //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
     if(b1!=b2)
     {
-      //std::cout<< "In 2!" << std::endl;
       if(a2<(alength-1))
       {
-        //std::cout<< "!In 3!" << std::endl;
         a2++;
         if(*(astart+*(apoint+a2)-1)==*(astart+*(apoint+a1)-1))
           b2=b1;
         
         else
           b1=b2;
-        
       }
       else
         b1=b2;
       a2=++a1;
       continue;
     }
-    //std::cout << "2a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
-    //std::cout << "2b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
     if(a2<alength && (b2>=blength || *(astart+*(apoint+a2)-1)<*(bstart+*(bpoint+b2)-1)))
     {
-      //std::cout<< "In 4!" << std::endl;
       indexsA.push_back(*(apoint+a2));
       indexsB.push_back(blength+1);
       
-        a1=++a2;
-        continue;
+      a1=++a2;
+      continue;
     }
-    //std::cout << a2 << ';';
-    //std::cout << b2 << std::endl;
     if(b2<blength && (a2>=alength || *(astart+*(apoint+a2)-1)>*(bstart+*(bpoint+b2)-1)))
     {
-      //std::cout<< "In 5!" << std::endl;
       indexsA.push_back(alength+1);
       indexsB.push_back(*(bpoint+b2));
-        b1=++b2;
-        continue;
+      b1=++b2;
+      continue;
     }
-    
-
   }
   //Unfortunate overhead needed to convert vector to SEXP
   SEXP result1 = PROTECT(allocVector(INTSXP,indexsA.size()));
@@ -272,9 +240,164 @@ extern "C" SEXP matches(SEXP a, SEXP b)
   SEXP combined = PROTECT(allocVector(VECSXP,2));
   SET_VECTOR_ELT(combined,0,result1);
   SET_VECTOR_ELT(combined,1,result2);
-  UNPROTECT(5);
+  UNPROTECT(3);
   return combined;
+}
+
+// [[Rcpp::export]]
+extern "C" SEXP matches(SEXP a, SEXP b)
+{
+  int alength = LENGTH(a);
+  int blength = LENGTH(b);
+  SEXP sortedA = PROTECT(allocVector(INTSXP,alength));
+  int* apoint = INTEGER(sortedA);
+  internalOrder(apoint,a);
+  SEXP sortedB = PROTECT(allocVector(INTSXP,blength));
+  int* bpoint = INTEGER(sortedB);
+  internalOrder(bpoint,b);
+  SEXP result;
+  switch(TYPEOF(a))
+  {
+  case INTSXP:
+  {
+
+    int* astart = &INTEGER(a)[0];
+    int* bstart = &INTEGER(b)[0];
+    result=match(astart,bstart,apoint,bpoint,alength,blength);
+    break;
+  }
+  case REALSXP:
+  {
+    double* astart = &REAL(a)[0];
+    double* bstart = &REAL(b)[0];
+    result=match(astart,bstart,apoint,bpoint,alength,blength);
+    break;
+  }
+  case LGLSXP:
+  {
+    int* astart = &INTEGER(a)[0];
+    int* bstart = &INTEGER(b)[0];
+    result=match(astart,bstart,apoint,bpoint,alength,blength);
+    
+    break;
+  }
+  case STRSXP:
+  {
+    SEXP* astart = &STRING_PTR(a)[0];
+    SEXP* bstart = &STRING_PTR(b)[0];
+    result=match(astart,bstart,apoint,bpoint,alength,blength);
+    break;
+  }
+  default:
+    UNPROTECT(2);
+    error("Unsupported type for matching.")
+      ;
+  }
+  UNPROTECT(2);
+  return(result);
   
 }
 
-
+// 
+// // [[Rcpp::export]]
+// extern "C" SEXP matches(SEXP a, SEXP b)
+// {
+//   int alength = LENGTH(a);
+//   int blength = LENGTH(b);
+//   SEXP sortedA = PROTECT(allocVector(INTSXP,alength));
+//   int* apoint = INTEGER(sortedA);
+//   internalOrder(apoint,a);
+//   SEXP sortedB = PROTECT(allocVector(INTSXP,blength));
+//   int* bpoint = INTEGER(sortedB);
+//   internalOrder(bpoint,b);
+//   std::vector<int> indexsA;
+//   indexsA.reserve(alength);
+//   std::vector<int> indexsB;
+//   indexsB.reserve(blength);
+//   int a1 =0, a2 = 0, b1 =0, b2 = 0;
+//   //
+//   
+//   
+//   int* astart = &INTEGER(a)[0];
+//   int* bstart = &INTEGER(b)[0];
+//   
+//   //matches(as.integer(c(1)),as.integer(c(1)))
+//   while (a2 < alength || b2 < blength)
+//   {
+//     //if a1==a2 and  *(astart+a2)!=*(bstart+b1), then there is no match.
+//     //std::cout << "1a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
+//     //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
+//     //std::cout << "1b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
+//     while(a2<alength && b2<blength && *(astart+*(apoint+a2)-1)==*(bstart+*(bpoint+b2)-1))
+//     {
+//       //std::cout<< "In 1!" << std::endl;
+//       //std::cout << "1a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
+//       //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
+//       //std::cout << "1b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
+//       indexsA.push_back(*(apoint+a2));
+//       indexsB.push_back(*(bpoint+b2));
+//       b2++;
+//     }
+//     //std::cout << "b1 = " << b1 << ';' << "b2 = " << b2 << std::endl;
+//     if(b1!=b2)
+//     {
+//       //std::cout<< "In 2!" << std::endl;
+//       if(a2<(alength-1))
+//       {
+//         //std::cout<< "!In 3!" << std::endl;
+//         a2++;
+//         if(*(astart+*(apoint+a2)-1)==*(astart+*(apoint+a1)-1))
+//           b2=b1;
+//         
+//         else
+//           b1=b2;
+//         
+//       }
+//       else
+//         b1=b2;
+//       a2=++a1;
+//       continue;
+//     }
+//     //std::cout << "2a2 = " << a2 << ';' << "*(apoint+a2) = " << *(apoint+a2) << std::endl;
+//     //std::cout << "2b2 = " << b2 << ';' << "*(bpoint+b2) = " << *(bpoint+b2) << std::endl;
+//     if(a2<alength && (b2>=blength || *(astart+*(apoint+a2)-1)<*(bstart+*(bpoint+b2)-1)))
+//     {
+//       //std::cout<< "In 4!" << std::endl;
+//       indexsA.push_back(*(apoint+a2));
+//       indexsB.push_back(blength+1);
+//       
+//         a1=++a2;
+//         continue;
+//     }
+//     //std::cout << a2 << ';';
+//     //std::cout << b2 << std::endl;
+//     if(b2<blength && (a2>=alength || *(astart+*(apoint+a2)-1)>*(bstart+*(bpoint+b2)-1)))
+//     {
+//       //std::cout<< "In 5!" << std::endl;
+//       indexsA.push_back(alength+1);
+//       indexsB.push_back(*(bpoint+b2));
+//         b1=++b2;
+//         continue;
+//     }
+//     
+// 
+//   }
+//   //Unfortunate overhead needed to convert vector to SEXP
+//   SEXP result1 = PROTECT(allocVector(INTSXP,indexsA.size()));
+//   SEXP result2 = PROTECT(allocVector(INTSXP,indexsB.size()));
+//   int* respoint1 = INTEGER(result1);
+//   int* respoint2 = INTEGER(result2);
+//   //Will this work?  If so, then we could probably dispense with allocating new vectors above (and instead allocate of size 0)
+//   //respoint1 = &indexsA.front();
+//   //respoint1 = &indexsB.front();
+//   std::copy(indexsA.begin(),indexsA.end(),respoint1);
+//   std::copy(indexsB.begin(),indexsB.end(),respoint2);
+//   SEXP combined = PROTECT(allocVector(VECSXP,2));
+//   SET_VECTOR_ELT(combined,0,result1);
+//   SET_VECTOR_ELT(combined,1,result2);
+//   UNPROTECT(5);
+//   return combined;
+//   
+// }
+// 
+// 
