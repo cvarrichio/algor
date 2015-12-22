@@ -14,7 +14,7 @@ struct CMP_CHAR {
 
 
 // [[Rcpp::export]]
-extern "C" SEXP csort(SEXP x) {
+extern "C" SEXP sortcpp(SEXP x) {
   
   //std::cout << TYPEOF(x);
   x = PROTECT(Rf_duplicate(x));
@@ -68,58 +68,57 @@ struct CMP_CHAR2 {
 };
 
 
-// [[Rcpp::export]]
-extern "C" SEXP corder(SEXP x) {
-  
-  //std::cout << TYPEOF(x);
-  //int* xpoint = INTEGER(x); //Pointer to int array of input x
-  
-  SEXP result = PROTECT(allocVector(INTSXP,LENGTH(x)));
-  int* respoint = INTEGER(result);
-  for (int i = 0; i < LENGTH(x); i++)
-  {
-    //std::cout << *(start+i);
-    respoint[i] = i+1; //shift compensates for difference between R and C indexing
-  }
-  switch(TYPEOF(x))
-  {
-  case INTSXP:
-  {
-    int* start = &INTEGER(x)[0];
-    std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_INT(start));
-    break;
-  }
-  case REALSXP:
-  {
-    double* start = &REAL(x)[0];
-    std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_REAL(start));
-    break;
-  }
-  case LGLSXP:
-  {
-    int* start = &INTEGER(x)[0];
-    std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_INT(start));
-    break;
-  }
-  case STRSXP:
-  {
-    SEXP* start = &STRING_PTR(x)[0];
-    std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_CHAR2(start));
-    break;
-  }
-  default:
-    UNPROTECT(1);
-    error_return("Unsupported type for sort.")
-    ;
-  }
-  
-  //   std::vector<int> v;  //   v.assign(respoint,respoint + LENGTH(result));  //int* a = &v[0];
-  
-  UNPROTECT(1);
-  return(result);
-  
-}
-
+// // [[Rcpp::export]]
+// extern "C" SEXP corder(SEXP x) {
+//   
+//   //std::cout << TYPEOF(x);
+//   //int* xpoint = INTEGER(x); //Pointer to int array of input x
+//   
+//   SEXP result = PROTECT(allocVector(INTSXP,LENGTH(x)));
+//   int* respoint = INTEGER(result);
+//   for (int i = 0; i < LENGTH(x); i++)
+//   {
+//     //std::cout << *(start+i);
+//     respoint[i] = i+1; //shift compensates for difference between R and C indexing
+//   }
+//   switch(TYPEOF(x))
+//   {
+//   case INTSXP:
+//   {
+//     int* start = &INTEGER(x)[0];
+//     std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_INT(start));
+//     break;
+//   }
+//   case REALSXP:
+//   {
+//     double* start = &REAL(x)[0];
+//     std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_REAL(start));
+//     break;
+//   }
+//   case LGLSXP:
+//   {
+//     int* start = &INTEGER(x)[0];
+//     std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_INT(start));
+//     break;
+//   }
+//   case STRSXP:
+//   {
+//     SEXP* start = &STRING_PTR(x)[0];
+//     std::sort(INTEGER(result),INTEGER(result)+LENGTH(x), CMP_CHAR2(start));
+//     break;
+//   }
+//   default:
+//     UNPROTECT(1);
+//     error_return("Unsupported type for sort.")
+//     ;
+//   }
+//   
+//   //   std::vector<int> v;  //   v.assign(respoint,respoint + LENGTH(result));  //int* a = &v[0];
+//   
+//   UNPROTECT(1);
+//   return(result);
+//   
+// }
 
 
 void internalOrder(int* index,SEXP x)
@@ -163,7 +162,7 @@ void internalOrder(int* index,SEXP x)
 }
 
 // [[Rcpp::export]]
-extern "C" SEXP ordercpp2(SEXP x) {
+extern "C" SEXP ordercpp(SEXP x) {
   
   //std::cout << TYPEOF(x);
   //int* xpoint = INTEGER(x); //Pointer to int array of input x
@@ -180,13 +179,9 @@ extern "C" SEXP ordercpp2(SEXP x) {
 
 
 template<typename T>
-SEXP match(T astart, T bstart, int* apoint, int* bpoint, int alength, int blength)
+void nmatch(T astart, T bstart, std::vector<int> &indexsA, std::vector<int> &indexsB, int* apoint, int* bpoint, int alength, int blength)
 {
   int a1 =0, a2 = 0, b1 =0, b2 = 0;
-  std::vector<int> indexsA;
-  indexsA.reserve(alength);
-  std::vector<int> indexsB;
-  indexsB.reserve(blength);
   while (a2 < alength || b2 < blength)
   {
     while(a2<alength && b2<blength && *(astart+*(apoint+a2)-1)==*(bstart+*(bpoint+b2)-1))
@@ -227,6 +222,114 @@ SEXP match(T astart, T bstart, int* apoint, int* bpoint, int alength, int blengt
       continue;
     }
   }
+  return;
+  
+}
+
+template<typename T>
+void cmatch(T astart, T bstart, std::vector<int> &indexsA, std::vector<int> &indexsB, int* apoint, int* bpoint, int alength, int blength)
+{
+  int a1 =0, a2 = 0, b1 =0, b2 = 0;
+  
+  while (a2 < alength || b2 < blength)
+  {
+    while(a2<alength && b2<blength && strcmp(CHAR(*(astart+*(apoint+a2)-1)),CHAR(*(bstart+*(bpoint+b2)-1)))==0)
+    {
+      indexsA.push_back(*(apoint+a2));
+      indexsB.push_back(*(bpoint+b2));
+      b2++;
+    }
+    if(b1!=b2)
+    {
+      if(a2<(alength-1))
+      {
+        a2++;
+        if(strcmp(CHAR(*(astart+*(apoint+a2)-1)),CHAR(*(astart+*(apoint+a1)-1)))==0)
+          b2=b1;
+        
+        else
+          b1=b2;
+      }
+      else
+        b1=b2;
+      a2=++a1;
+      continue;
+    }
+    if(a2<alength && (b2>=blength || strcmp(CHAR(*(astart+*(apoint+a2)-1)),CHAR(*(bstart+*(bpoint+b2)-1)))<0))
+    {
+      indexsA.push_back(*(apoint+a2));
+      indexsB.push_back(blength+1);
+      
+      a1=++a2;
+      continue;
+    }
+    if(b2<blength && (a2>=alength || strcmp(CHAR(*(astart+*(apoint+a2)-1)),CHAR(*(bstart+*(bpoint+b2)-1)))>0))
+    {
+      indexsA.push_back(alength+1);
+      indexsB.push_back(*(bpoint+b2));
+      b1=++b2;
+      continue;
+    }
+  }
+  
+  return;
+  
+}
+
+// [[Rcpp::export]]
+extern "C" SEXP matches(SEXP a, SEXP b)
+{
+  
+  int alength = LENGTH(a);
+  int blength = LENGTH(b);
+  SEXP sortedA = PROTECT(allocVector(INTSXP,alength));
+  int* apoint = INTEGER(sortedA);
+  internalOrder(apoint,a);
+  SEXP sortedB = PROTECT(allocVector(INTSXP,blength));
+  int* bpoint = INTEGER(sortedB);
+  internalOrder(bpoint,b);
+  std::vector<int> indexsA;
+  indexsA.reserve(alength);
+  std::vector<int> indexsB;
+  indexsB.reserve(blength);
+
+  switch(TYPEOF(a))
+  {
+  case INTSXP:
+  {
+    int* astart = &INTEGER(a)[0];
+    int* bstart = &INTEGER(b)[0];
+    nmatch(astart,bstart,indexsA,indexsB,apoint,bpoint,alength,blength);
+    break;
+  }
+  case REALSXP:
+  {
+    double* astart = &REAL(a)[0];
+    double* bstart = &REAL(b)[0];
+    nmatch(astart,bstart,indexsA,indexsB,apoint,bpoint,alength,blength);
+    break;
+  }
+  case LGLSXP:
+  {
+    int* astart = &INTEGER(a)[0];
+    int* bstart = &INTEGER(b)[0];
+    nmatch(astart,bstart,indexsA,indexsB,apoint,bpoint,alength,blength);
+    
+    break;
+  }
+  case STRSXP:
+  {
+    SEXP* astart = &STRING_PTR(a)[0];
+    SEXP* bstart = &STRING_PTR(b)[0];
+    cmatch(astart,bstart,indexsA,indexsB,apoint,bpoint,alength,blength);
+    break;
+  }
+  default:
+    UNPROTECT(2);
+    error("Unsupported type for matching.")
+      ;
+  }
+  
   //Unfortunate overhead needed to convert vector to SEXP
   SEXP result1 = PROTECT(allocVector(INTSXP,indexsA.size()));
   SEXP result2 = PROTECT(allocVector(INTSXP,indexsB.size()));
@@ -240,61 +343,8 @@ SEXP match(T astart, T bstart, int* apoint, int* bpoint, int alength, int blengt
   SEXP combined = PROTECT(allocVector(VECSXP,2));
   SET_VECTOR_ELT(combined,0,result1);
   SET_VECTOR_ELT(combined,1,result2);
-  UNPROTECT(3);
-  return combined;
-}
-
-// [[Rcpp::export]]
-extern "C" SEXP matches(SEXP a, SEXP b)
-{
-  int alength = LENGTH(a);
-  int blength = LENGTH(b);
-  SEXP sortedA = PROTECT(allocVector(INTSXP,alength));
-  int* apoint = INTEGER(sortedA);
-  internalOrder(apoint,a);
-  SEXP sortedB = PROTECT(allocVector(INTSXP,blength));
-  int* bpoint = INTEGER(sortedB);
-  internalOrder(bpoint,b);
-  SEXP result;
-  switch(TYPEOF(a))
-  {
-  case INTSXP:
-  {
-
-    int* astart = &INTEGER(a)[0];
-    int* bstart = &INTEGER(b)[0];
-    result=match(astart,bstart,apoint,bpoint,alength,blength);
-    break;
-  }
-  case REALSXP:
-  {
-    double* astart = &REAL(a)[0];
-    double* bstart = &REAL(b)[0];
-    result=match(astart,bstart,apoint,bpoint,alength,blength);
-    break;
-  }
-  case LGLSXP:
-  {
-    int* astart = &INTEGER(a)[0];
-    int* bstart = &INTEGER(b)[0];
-    result=match(astart,bstart,apoint,bpoint,alength,blength);
-    
-    break;
-  }
-  case STRSXP:
-  {
-    SEXP* astart = &STRING_PTR(a)[0];
-    SEXP* bstart = &STRING_PTR(b)[0];
-    result=match(astart,bstart,apoint,bpoint,alength,blength);
-    break;
-  }
-  default:
-    UNPROTECT(2);
-    error("Unsupported type for matching.")
-      ;
-  }
-  UNPROTECT(2);
-  return(result);
+  UNPROTECT(5);
+  return(combined);
   
 }
 
