@@ -4,7 +4,7 @@
 \name{algor}
 \alias{algor}
 \alias{algor-package}
-\title{Faster implementations of base R functions, including sort, order, and match.}
+\title{Faster implementations of base R functions}
 \description{
 Faster implementations of base R functions, including sort, order, and match.
 }
