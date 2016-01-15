@@ -1,6 +1,7 @@
-#' Faster implementations of base R functions
+#' Alternate implementations of base R functions
 #' 
-#' Faster implementations of base R functions, including sort, order, and match.
+#' Alternate implementations of base R functions, including sort, order, and match.  Functions are
+#' faster and/or have been otherwise augmented.
 #' 
 #' @name algor
 #' @docType package
@@ -144,7 +145,6 @@ order2<-function(x)
 #' \item{full}{\code{all.x=TRUE}, \code{all.y=TRUE}}
 #' }
 #' 
-#' On all matches, missing values from the other vector will be populated with \code{NA}.
 #' 
 #' @param x vector.  The values to be matched.  Long vectors are not currently supported.
 #' @param y vector.  The values to be matched.  Long vectors are not currently supported.
@@ -155,6 +155,10 @@ order2<-function(x)
 #' @param list logical.  If \code{TRUE}, the result will be returned as a list of vectors, each vector being the matching values in y.
 #'  If \code{FALSE}, result is returned as a data frame with repeated values for each match.
 #' @param indexes logical.  Whether to return the indices of the matches or the actual values.
+#' @param nomatch the value to be returned in the case when no match is found. If not provided
+#'  and \code{indexes=TRUE}, items with no match will be represented as \code{NA}.  If set to \code{NULL},
+#'  items with no match will be set to an index value of \code{length+1}.  If
+#'  {indexes=FALSE}, they will default to \code{NA}.
 #' @export
 #' @examples
 #' one<-as.integer(1:10000)
@@ -175,7 +179,6 @@ order2<-function(x)
 #' \dontrun{
 #' one<-as.integer(1:1000000)
 #' two<-as.integer(sample(1:1000000,1e5,TRUE))
-#' system.time(a<-lapply(one, function (x) which(two %in% x)))
 #' system.time(b<-matches(one,two,indexes=FALSE))
 #' if(requireNamespace("dplyr",quietly=TRUE))
 #'  system.time(c<-dplyr::full_join(data.frame(key=one),data.frame(key=two)))
@@ -198,7 +201,7 @@ order2<-function(x)
 #'  identical(b[,1],as.character(d$key))
 #' }
 #' }
-matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE)
+matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
 {
   result<-.Call('matches',x,y)
   result<-data.frame(x=result[[1]],y=result[[2]])
@@ -211,8 +214,13 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE)
     result$x<-x[result$x]
     result$y<-y[result$y]
   }
+  else if(!is.null(nomatch)) 
+  {
+    result$x[result$x==length(x)+1]<-nomatch
+    result$y[result$y==length(y)+1]<-nomatch
+  }
   if(list)
-    result<-tapply(result$y,result$x,identity)
+    result<-tapply(result$y,result$x,function (z) z[!is.na(z)])
   return(result)
 }
 
@@ -221,7 +229,7 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE)
 #'Alternative to built-in \code{\link{Extract}} or \code{[}.  Allows for extraction operations that are ambivalent to the data type of the object.
 #'For example, \code{extract(x,i)} will work on lists, vectors, data frames, matrices, etc.  
 #'
-#'Extraction is also 2-100x faster on data frames than with the built in operation - but does not preserve row names.
+#'Extraction is 2-100x faster on data frames than with the built in operation - but does not preserve row names.
 #'
 #'@param x object from which to extract elements
 #'@param i,j indices specifying elements to extract.  Can be \code{numeric}, \code{character}, or \code{logical} vectors.
@@ -267,7 +275,6 @@ extract<-function(x,i,j)
   }
   return(x)
 }  
-
 
 #'#@examples
 #'df<-data.frame(one=sample(4e4,1e6,TRUE),two=1:1000000,three=as.factor(sample(letters,1e6,TRUE)))
