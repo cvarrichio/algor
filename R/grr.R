@@ -3,9 +3,9 @@
 #' Alternate implementations of base R functions, including sort, order, and match.  Functions are
 #' faster and/or have been otherwise augmented.
 #' 
-#' @name algor
+#' @name grr
 #' @docType package
-#' @useDynLib algor
+#' @useDynLib grr
 NULL
 
 #' Sorting vectors 
