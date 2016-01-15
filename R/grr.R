@@ -242,11 +242,17 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
 #'a<-sample(1e5,1e4)
 #' system.time(b<-orders[a,])
 #'system.time(c<-extract(orders,a))
+#'rownames(b)<-NULL
+#'rownames(c)<-NULL
+#'identical(b,c)
 #'
 #'#Speedup increases to 50-100x with oversampling 
 #'a<-sample(1e5,1e6,TRUE)
 #' system.time(b<-orders[a,])
 #'system.time(c<-extract(orders,a))
+#'rownames(b)<-NULL
+#'rownames(c)<-NULL
+#'identical(b,c)
 #'
 #'\dontrun{
 #'orders<-data.frame(orderNum=as.character(sample(1e5, 1e6, TRUE)),
