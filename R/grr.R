@@ -282,19 +282,3 @@ extract<-function(x,i,j)
   return(x)
 }  
 
-#'#@examples
-#'df<-data.frame(one=sample(4e4,1e6,TRUE),two=1:1000000,three=as.factor(sample(letters,1e6,TRUE)))
-#'system.time(a<-split(df,df$one))
-#'system.time(a<-split(as.matrix(df),df$one))
-#'system.time(b<-lapply(a,function (x) data.frame(matrix(x,ncol=2))))
-#'system.time({df2<-as.matrix(data.frame(lapply(df,as.factor))); c<-split(df2,df$one);d<-lapply(c,function (x) data.frame(matrix(x,ncol=2)))})
-#'system.time({factors<-df[,unlist(lapply(df,is.factor)),drop=FALSE];
-#'  nums<-df[,unlist(lapply(df,is.numeric)),drop=FALSE];
-#'  e<-split(as.matrix(factors),df$one);
-#'  f<-split(as.matrix(nums),df$one);
-#'  g<-Map(function(x,y) data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),e,f)
-#'  })
-# csplit<-function(x,f)
-# {
-#   
-# }
