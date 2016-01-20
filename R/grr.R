@@ -1,19 +1,22 @@
-#' Alternate implementations of base R functions
+#' Alternative Implementations of Base R Functions
 #' 
-#' Alternate implementations of base R functions, including sort, order, and match.  Functions are
-#' faster and/or have been otherwise augmented.
+#' Alternative implementations of some base R functions, including sort, order, and match.  Functions are
+#' simplified but can be faster or have other advantages.  See the documentation of individual functions
+#' for details and benchmarks.
 #' 
 #' @name grr
 #' @docType package
 #' @useDynLib grr
 NULL
 
-#' Sorting vectors 
+#' Sorting vectors
 #' 
-#' Simplified implementation of sort that is much faster than base::sort. 
-#' For large vectors, typically is about 2x faster for numbers and 20x faster for characters and factors.
+#' Simplified implementation of \code{\link{sort}}. For large vectors,
+#' typically is about 2x faster for numbers and 20x faster for characters and
+#' factors.
 #' 
-#' @param x a vector of class numeric, integer, character, factor, or logical.
+#' @param x a vector of class numeric, integer, character, factor, or logical. 
+#'   Long vectors are not supported.
 #' @export
 #' @examples
 #' chars<-as.character(sample(1e3,1e4,TRUE))
@@ -39,6 +42,15 @@ NULL
 #' system.time(a<-sort(facts))
 #' system.time(b<-sort2(facts))
 #' identical(a,b)
+#' 
+#' #How are special values like NA and Inf handled?
+#' #For numerics, values sort intuitively, with the important note that NA and
+#' #NaN will come after all real numbers but before Inf.
+#' sort2(c(1,2,NA,NaN,Inf,-Inf))
+#' #For characters, values sort correctly with NA at the end.
+#' sort2(c('C','B',NA,'A'))
+#' #For factors, values sort correctly with NA at the beginning.
+#' sort2(as.factor(c('C','B',NA,'A')))
 #' 
 #' \dontrun{
 #' chars<-as.character(sample(1e5,1e6,TRUE))
@@ -69,9 +81,10 @@ sort2<-function(x)
 
 #' Ordering vectors
 #' 
-#' Alternative to \code{\link{order}}.  For large vectors, typically is about 3x faster for numbers and 20x faster for characters.
+#' Simplified implementation of \code{\link{order}}.  For large vectors, typically is about 3x faster for 
+#' numbers and 20x faster for characters.
 #' 
-#' @param x a vector of class numeric, integer, character, factor, or logical.
+#' @param x a vector of class numeric, integer, character, factor, or logical.  Long vectors are not supported.
 #' @export
 #' @examples
 #' chars<-as.character(sample(1e3,1e4,TRUE))
@@ -99,6 +112,15 @@ sort2<-function(x)
 #' system.time(b<-order2(facts))
 #' identical(facts[a],facts[b])
 #' 
+#' #How are special values like NA and Inf handled?
+#' #For numerics, values sort intuitively, with the important note that NA and
+#' #NaN will come after all real numbers but before Inf.
+#' (function (x) x[order2(x)])(c(1,2,NA,NaN,Inf,-Inf))
+#' #For characters, values sort correctly with NA at the end.
+#' (function (x) x[order2(x)])(c('C','B',NA,'A'))
+#' #For factors, values sort correctly with NA at the end.
+#' (function (x) x[order2(x)])(as.factor(c('C','B',NA,'A')))
+#' 
 #' \dontrun{
 #' chars<-as.character(sample(1e5,1e6,TRUE))
 #' system.time(a<-order(chars))
@@ -120,6 +142,8 @@ sort2<-function(x)
 #' system.time(a<-order(facts))
 #' system.time(b<-order2(facts))
 #' identical(facts[a],facts[b])
+#' 
+#' 
 #' }
 order2<-function(x)
 {
@@ -145,6 +169,7 @@ order2<-function(x)
 #' \item{full}{\code{all.x=TRUE}, \code{all.y=TRUE}}
 #' }
 #' 
+#' Note that \code{NA} values will match other \code{NA} values.
 #' 
 #' @param x vector.  The values to be matched.  Long vectors are not currently supported.
 #' @param y vector.  The values to be matched.  Long vectors are not currently supported.
@@ -254,6 +279,13 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
 #'rownames(c)<-NULL
 #'identical(b,c)
 #'
+#'#Can create function calls that work for multiple data types
+#'alist<-as.list(1:50)
+#'avector<-1:50
+#'extract(alist,1:5)
+#'extract(avector,1:5)
+#'extract(orders,1:5)#'
+#'
 #'\dontrun{
 #'orders<-data.frame(orderNum=as.character(sample(1e5, 1e6, TRUE)),
 #'  sku=sample(1e3, 1e6, TRUE),
@@ -262,7 +294,7 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
 #' system.time(b<-orders[a,])
 #'system.time(c<-extract(orders,a))
 #'}
-extract<-function(x,i,j)
+extract<-function(x,i=NULL,j=NULL)
 {
   if(is.null(dim(x)))
   {
@@ -270,9 +302,9 @@ extract<-function(x,i,j)
     return(x)
   }
   else
-    if(hasArg(j))
+    if(!is.null(j))
       x<-x[,j]
-  if(hasArg(i))
+  if(!is.null(i))
   {
   if(is.data.frame(x))
     x<-as.data.frame(lapply(x,function (a) a[i]))
@@ -282,3 +314,47 @@ extract<-function(x,i,j)
   return(x)
 }  
 
+# 
+# #' @param x 
+# #' @param f 
+# #'@examples
+# #'df<-data.frame(one=sample(4e4,1e6,TRUE),two=1:1000000,three=as.factor(sample(letters,1e6,TRUE)))
+# #'system.time(a<-split(df,df$one))
+# #'system.time(a<-split(as.matrix(df),df$one))
+# #'system.time(b<-lapply(a,function (x) data.frame(matrix(x,ncol=2))))
+# #'system.time({df2<-as.matrix(data.frame(lapply(df,as.factor))); c<-split(df2,df$one);d<-lapply(c,function (x) data.frame(matrix(x,ncol=2)))})
+# #'system.time({factors<-df[,unlist(lapply(df,is.factor)),drop=FALSE];
+# #'  nums<-df[,unlist(lapply(df,is.numeric)),drop=FALSE];
+# #'  e<-split(as.matrix(factors),df$one);
+# #'  f<-split(as.matrix(nums),df$one);
+# #'  g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),names=c(colnames(e),colnames(f))),e,f);
+# #'  })
+# #'  system.time({factors<-colnames(df)[unlist(lapply(df,is.factor))]
+# #'  nums<-colnames(df)[unlist(lapply(df,is.numeric))]
+# #'  e<-split(as.matrix(df[,factors]),df$one);
+# #'  f<-split(as.matrix(df[,nums]),df$one);
+# #'  g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),names=c(factors,nums))[,colnames(df)],e,f);
+# #'  })
+# #'  system.time({factors<-colnames(df2)[unlist(lapply(df2,is.factor))]
+# #'  nums<-colnames(df2)[unlist(lapply(df2,is.numeric))]
+# #'  e<-split(as.matrix(df2[,factors]),df2$one);
+# #'  f<-split(as.matrix(df2[,nums]),df2$one);
+# #'  g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=length(factors)),matrix(y,ncol=length(nums))),names=c(factors,nums))[,colnames(df2)],e,f);
+# #'  })
+# #'  
+# #'  system.time(results<-lapply(df,function (x) split(as.matrix(x)),df$one))
+# #'  nums<-df[,unlist(lapply(df,is.numeric)),drop=FALSE];
+# #'  e<-split(as.matrix(factors),df$one);
+# #'  f<-split(as.matrix(nums),df$one);
+# #'  g<-Map(function(x,y) data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),e,f)
+# #'  })
+# #'system.time(results<-lapply(df2,split,df2$one))
+# #'system.time(results<-.Internal(mapply(data.frame,dots<-results,NULL)))
+# split2<-function(x,f)
+# {
+#   factors<-colnames(x)[unlist(lapply(x,function (y) is.factor(y) || is.character(y)))]
+#   nums<-colnames(x)[unlist(lapply(x,is.numeric))]
+#   e<-split(as.matrix(x[,factors]),f);
+#   f<-split(as.matrix(x[,nums]),f);
+#   g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=length(factors)),matrix(y,ncol=length(nums))),names=c(factors,nums))[,colnames(df2)],e,f);
+# }

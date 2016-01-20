@@ -1,10 +1,11 @@
-#include <R.h>
-#include <Rdefines.h>
 #include <algorithm>
 #include <string>
 #include <vector>
 #include <numeric>
 #include <iostream>
+#define R_NO_REMAP 
+#include <R.h>
+#include <Rdefines.h>
 
 struct CMP_CHAR {
   bool operator()(SEXP x, SEXP y) {
@@ -103,7 +104,7 @@ void internalOrder(int* index,SEXP x)
   }
   default:
     UNPROTECT(1);
-    error("Unsupported type for sort.")
+    Rf_error("Unsupported type for sort.")
       ;
   }
 }
@@ -113,7 +114,7 @@ extern "C" SEXP ordercpp(SEXP x) {
   
   //std::cout << TYPEOF(x);
   //int* xpoint = INTEGER(x); //Pointer to int array of input x
-  SEXP result = PROTECT(allocVector(INTSXP,LENGTH(x)));
+  SEXP result = PROTECT(Rf_allocVector(INTSXP,LENGTH(x)));
   int* respoint = INTEGER(result);
   internalOrder(respoint,x);
   
@@ -229,10 +230,10 @@ extern "C" SEXP matches(SEXP a, SEXP b)
   
   int alength = LENGTH(a);
   int blength = LENGTH(b);
-  SEXP sortedA = PROTECT(allocVector(INTSXP,alength));
+  SEXP sortedA = PROTECT(Rf_allocVector(INTSXP,alength));
   int* apoint = INTEGER(sortedA);
   internalOrder(apoint,a);
-  SEXP sortedB = PROTECT(allocVector(INTSXP,blength));
+  SEXP sortedB = PROTECT(Rf_allocVector(INTSXP,blength));
   int* bpoint = INTEGER(sortedB);
   internalOrder(bpoint,b);
   std::vector<int> indexsA;
@@ -273,13 +274,13 @@ extern "C" SEXP matches(SEXP a, SEXP b)
   }
   default:
     UNPROTECT(2);
-    error("Unsupported type for matching.")
+    Rf_error("Unsupported type for matching.")
       ;
   }
   
   //Unfortunate overhead needed to convert vector to SEXP
-  SEXP result1 = PROTECT(allocVector(INTSXP,indexsA.size()));
-  SEXP result2 = PROTECT(allocVector(INTSXP,indexsB.size()));
+  SEXP result1 = PROTECT(Rf_allocVector(INTSXP,indexsA.size()));
+  SEXP result2 = PROTECT(Rf_allocVector(INTSXP,indexsB.size()));
   int* respoint1 = INTEGER(result1);
   int* respoint2 = INTEGER(result2);
   //Will this work?  If so, then we could probably dispense with allocating new vectors above (and instead allocate of size 0)
@@ -287,7 +288,7 @@ extern "C" SEXP matches(SEXP a, SEXP b)
   //respoint1 = &indexsB.front();
   std::copy(indexsA.begin(),indexsA.end(),respoint1);
   std::copy(indexsB.begin(),indexsB.end(),respoint2);
-  SEXP combined = PROTECT(allocVector(VECSXP,2));
+  SEXP combined = PROTECT(Rf_allocVector(VECSXP,2));
   SET_VECTOR_ELT(combined,0,result1);
   SET_VECTOR_ELT(combined,1,result2);
   UNPROTECT(5);

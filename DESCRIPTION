@@ -1,11 +1,10 @@
 Package: grr
-Title: Alternate implementations of base R functions
+Title: Alternative Implementations of Base R Functions
 Version: 0.9
 Author: Craig Varrichio <canthony427@gmail.com>
 Maintainer: Craig Varrichio <canthony427@gmail.com>
-Description: Contains additional tools and faster implementations of existing tools, primarily those of package base.
+Description: Alternative implementations of some base R functions, including sort, order, and match.  Functions are simplified but can be faster or have other advantages.
 Depends:
-    R (>= 3.0.0),
+    R (>= 3.0.0)
 License: GPL-3
-LazyData: true
 RoxygenNote: 5.0.1
