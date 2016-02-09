@@ -4,6 +4,10 @@
 #' simplified but can be faster or have other advantages.  See the documentation of individual functions
 #' for details and benchmarks.
 #' 
+#' Note that these functions cannot be considered drop-in replacements for the functions in base \code{R}.  
+#' They do not implement all the same parameters and do not work for all data types.  Utilize these 
+#' with caution in specialized applications that require them.
+#' 
 #' @name grr
 #' @docType package
 #' @useDynLib grr
@@ -121,6 +125,16 @@ sort2<-function(x)
 #' #For factors, values sort correctly with NA at the end.
 #' (function (x) x[order2(x)])(as.factor(c('C','B',NA,'A')))
 #' 
+#' 
+#' #Ordering a data frame using order2
+#' df<-data.frame(one=as.character(1:4e5),
+#'    two=sample(1:1e5,4e5,TRUE),
+#'    three=sample(letters,4e5,TRUE),stringsAsFactors=FALSE)
+#' system.time(a<-df[order(df$one),])  
+#' system.time(b<-df[order2(df$one),])
+#' system.time(a<-df[order(df$two),])  
+#' system.time(b<-df[order2(df$two),])
+#' 
 #' \dontrun{
 #' chars<-as.character(sample(1e5,1e6,TRUE))
 #' system.time(a<-order(chars))
@@ -154,42 +168,53 @@ order2<-function(x)
 
 #' Value Matching
 #' 
-#' Returns a lookup table or list of the positions of ALL matches of its first argument in its second and vice versa.
-#' Similar to \code{\link{match}}, though that function only returns the first match.
+#' Returns a lookup table or list of the positions of ALL matches of its first
+#' argument in its second and vice versa. Similar to \code{\link{match}}, though
+#' that function only returns the first match.
 #' 
-#' This behavior can be imitated by using joins to create lookup tables, but \code{matches} is simpler and faster: 
-#' usually faster than the best joins in other packages and thousands of times faster than the built in \code{\link{merge}}.
+#' This behavior can be imitated by using joins to create lookup tables, but
+#' \code{matches} is simpler and faster: usually faster than the best joins in
+#' other packages and thousands of times faster than the built in
+#' \code{\link{merge}}.
 #' 
-#' \code{all.x/all.y} correspond to the four types of database joins in the following way:
+#' \code{all.x/all.y} correspond to the four types of database joins in the
+#' following way:
 #' 
-#' \describe{
-#' \item{left}{\code{all.x=TRUE}, \code{all.y=FALSE}}
-#' \item{right}{\code{all.x=FALSE}, \code{all.y=TRUE}}
-#' \item{inner}{\code{all.x=FALSE}, \code{all.y=FALSE}}
-#' \item{full}{\code{all.x=TRUE}, \code{all.y=TRUE}}
-#' }
+#' \describe{ \item{left}{\code{all.x=TRUE}, \code{all.y=FALSE}} 
+#' \item{right}{\code{all.x=FALSE}, \code{all.y=TRUE}} 
+#' \item{inner}{\code{all.x=FALSE}, \code{all.y=FALSE}} 
+#' \item{full}{\code{all.x=TRUE}, \code{all.y=TRUE}} }
 #' 
 #' Note that \code{NA} values will match other \code{NA} values.
 #' 
-#' @param x vector.  The values to be matched.  Long vectors are not currently supported.
-#' @param y vector.  The values to be matched.  Long vectors are not currently supported.
-#' @param all.x logical; if \code{TRUE}, then each value in \code{x} will be included
-#'  even if it has no matching values in \code{y}
-#' @param all.y logical; if \code{TRUE}, then each value in \code{y} will be included
-#'  even if it has no matching values in \code{x}
-#' @param list logical.  If \code{TRUE}, the result will be returned as a list of vectors, each vector being the matching values in y.
-#'  If \code{FALSE}, result is returned as a data frame with repeated values for each match.
-#' @param indexes logical.  Whether to return the indices of the matches or the actual values.
-#' @param nomatch the value to be returned in the case when no match is found. If not provided
-#'  and \code{indexes=TRUE}, items with no match will be represented as \code{NA}.  If set to \code{NULL},
-#'  items with no match will be set to an index value of \code{length+1}.  If
-#'  {indexes=FALSE}, they will default to \code{NA}.
+#' @param x vector.  The values to be matched.  Long vectors are not currently
+#'   supported.
+#' @param y vector.  The values to be matched.  Long vectors are not currently
+#'   supported.
+#' @param all.x logical; if \code{TRUE}, then each value in \code{x} will be
+#'   included even if it has no matching values in \code{y}
+#' @param all.y logical; if \code{TRUE}, then each value in \code{y} will be
+#'   included even if it has no matching values in \code{x}
+#' @param list logical.  If \code{TRUE}, the result will be returned as a list
+#'   of vectors, each vector being the matching values in y. If \code{FALSE},
+#'   result is returned as a data frame with repeated values for each match.
+#' @param indexes logical.  Whether to return the indices of the matches or the
+#'   actual values.
+#' @param nomatch the value to be returned in the case when no match is found.
+#'   If not provided and \code{indexes=TRUE}, items with no match will be
+#'   represented as \code{NA}.  If set to \code{NULL}, items with no match will
+#'   be set to an index value of \code{length+1}.  If {indexes=FALSE}, they will
+#'   default to \code{NA}.
 #' @export
 #' @examples
 #' one<-as.integer(1:10000)
 #' two<-as.integer(sample(1:10000,1e3,TRUE))
 #' system.time(a<-lapply(one, function (x) which(two %in% x)))
 #' system.time(b<-matches(one,two,all.y=FALSE,list=TRUE))
+#' 
+#' #Only retain items from one with a match in two
+#' b<-matches(one,two,all.x=FALSE,all.y=FALSE,list=TRUE)
+#' length(b)==length(unique(two))
 #' 
 #' one<-round(runif(1e3),3)
 #' two<-round(runif(1e3),3)
@@ -200,7 +225,7 @@ order2<-function(x)
 #' two<-as.character(sample(1:1e5,1e5,TRUE))
 #' system.time(b<-matches(one,two,list=FALSE))
 #' system.time(c<-merge(data.frame(key=one),data.frame(key=two),all=TRUE))
-#'  
+#' 
 #' \dontrun{
 #' one<-as.integer(1:1000000)
 #' two<-as.integer(sample(1:1000000,1e5,TRUE))
@@ -231,9 +256,9 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
   result<-.Call('matches',x,y)
   result<-data.frame(x=result[[1]],y=result[[2]])
   if(!all.y)
-    result<-result[!is.na(result$x),]
+    result<-result[result$x!=length(x)+1,]
   if(!all.x)
-    result<-result[!is.na(result$y),]
+    result<-result[result$y!=length(y)+1,]
   if(!indexes)
   {
     result$x<-x[result$x]
@@ -251,13 +276,17 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
 
 #'Extract/return parts of objects
 #'
-#'Alternative to built-in \code{\link{Extract}} or \code{[}.  Allows for extraction operations that are ambivalent to the data type of the object.
-#'For example, \code{extract(x,i)} will work on lists, vectors, data frames, matrices, etc.  
+#'Alternative to built-in \code{\link{Extract}} or \code{[}.  Allows for 
+#'extraction operations that are ambivalent to the data type of the object. For 
+#'example, \code{extract(x,i)} will work on lists, vectors, data frames, 
+#'matrices, etc.
 #'
-#'Extraction is 2-100x faster on data frames than with the built in operation - but does not preserve row names.
+#'Extraction is 2-100x faster on data frames than with the built in operation - 
+#'but does not preserve row names.
 #'
 #'@param x object from which to extract elements
-#'@param i,j indices specifying elements to extract.  Can be \code{numeric}, \code{character}, or \code{logical} vectors.
+#'@param i,j indices specifying elements to extract.  Can be \code{numeric},
+#'  \code{character}, or \code{logical} vectors.
 #'@export
 #'@examples
 #'#Typically about twice as fast on normal subselections
@@ -313,48 +342,3 @@ extract<-function(x,i=NULL,j=NULL)
   }
   return(x)
 }  
-
-# 
-# #' @param x 
-# #' @param f 
-# #'@examples
-# #'df<-data.frame(one=sample(4e4,1e6,TRUE),two=1:1000000,three=as.factor(sample(letters,1e6,TRUE)))
-# #'system.time(a<-split(df,df$one))
-# #'system.time(a<-split(as.matrix(df),df$one))
-# #'system.time(b<-lapply(a,function (x) data.frame(matrix(x,ncol=2))))
-# #'system.time({df2<-as.matrix(data.frame(lapply(df,as.factor))); c<-split(df2,df$one);d<-lapply(c,function (x) data.frame(matrix(x,ncol=2)))})
-# #'system.time({factors<-df[,unlist(lapply(df,is.factor)),drop=FALSE];
-# #'  nums<-df[,unlist(lapply(df,is.numeric)),drop=FALSE];
-# #'  e<-split(as.matrix(factors),df$one);
-# #'  f<-split(as.matrix(nums),df$one);
-# #'  g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),names=c(colnames(e),colnames(f))),e,f);
-# #'  })
-# #'  system.time({factors<-colnames(df)[unlist(lapply(df,is.factor))]
-# #'  nums<-colnames(df)[unlist(lapply(df,is.numeric))]
-# #'  e<-split(as.matrix(df[,factors]),df$one);
-# #'  f<-split(as.matrix(df[,nums]),df$one);
-# #'  g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),names=c(factors,nums))[,colnames(df)],e,f);
-# #'  })
-# #'  system.time({factors<-colnames(df2)[unlist(lapply(df2,is.factor))]
-# #'  nums<-colnames(df2)[unlist(lapply(df2,is.numeric))]
-# #'  e<-split(as.matrix(df2[,factors]),df2$one);
-# #'  f<-split(as.matrix(df2[,nums]),df2$one);
-# #'  g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=length(factors)),matrix(y,ncol=length(nums))),names=c(factors,nums))[,colnames(df2)],e,f);
-# #'  })
-# #'  
-# #'  system.time(results<-lapply(df,function (x) split(as.matrix(x)),df$one))
-# #'  nums<-df[,unlist(lapply(df,is.numeric)),drop=FALSE];
-# #'  e<-split(as.matrix(factors),df$one);
-# #'  f<-split(as.matrix(nums),df$one);
-# #'  g<-Map(function(x,y) data.frame(matrix(x,ncol=1),matrix(y,ncol=2)),e,f)
-# #'  })
-# #'system.time(results<-lapply(df2,split,df2$one))
-# #'system.time(results<-.Internal(mapply(data.frame,dots<-results,NULL)))
-# split2<-function(x,f)
-# {
-#   factors<-colnames(x)[unlist(lapply(x,function (y) is.factor(y) || is.character(y)))]
-#   nums<-colnames(x)[unlist(lapply(x,is.numeric))]
-#   e<-split(as.matrix(x[,factors]),f);
-#   f<-split(as.matrix(x[,nums]),f);
-#   g<-Map(function(x,y) structure(data.frame(matrix(x,ncol=length(factors)),matrix(y,ncol=length(nums))),names=c(factors,nums))[,colnames(df2)],e,f);
-# }
