@@ -7,6 +7,16 @@
 #include <R.h>
 #include <Rdefines.h>
 
+struct CMP_INT {
+  bool operator()(int x, int y) {
+    if(x<-2147483647)
+      return false;
+    if(y<-2147483647)
+      return true;
+    return x-y < 0;
+  }
+};
+
 struct CMP_CHAR {
   bool operator()(SEXP x, SEXP y) {
     return strcmp(CHAR(x), CHAR(y)) < 0;
@@ -44,11 +54,17 @@ extern "C" SEXP sortcpp(SEXP x) {
 
 
 
-struct CMP_INT {
+struct CMP_INT2 {
   int* start;
-  CMP_INT(int* start) : start(start) {};
+  CMP_INT2(int* start) : start(start) {};
   bool operator()(int x, int y) {
-    return *(start+x-1) - *(start+y-1) < 0;
+    int a=*(start+x-1);
+    int b=*(start+y-1);
+    if(a<-2147483647)
+      return false;
+    if(b<-2147483647)
+      return true;
+    return a-b < 0;
   }
 };
 
@@ -81,7 +97,7 @@ void internalOrder(int* index,SEXP x)
   case INTSXP:
   {
     int* start = &INTEGER(x)[0];
-    std::sort(index,index+LENGTH(x), CMP_INT(start));
+    std::sort(index,index+LENGTH(x), CMP_INT2(start));
     break;
   }
   case REALSXP:
@@ -93,7 +109,7 @@ void internalOrder(int* index,SEXP x)
   case LGLSXP:
   {
     int* start = &INTEGER(x)[0];
-    std::sort(index,index+LENGTH(x), CMP_INT(start));
+    std::sort(index,index+LENGTH(x), CMP_INT2(start));
     break;
   }
   case STRSXP:
