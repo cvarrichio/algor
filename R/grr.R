@@ -342,3 +342,47 @@ extract<-function(x,i=NULL,j=NULL)
   }
   return(x)
 }  
+
+#' A wrapper for \code{\link{sample.int}} and \code{\link[grr]{extract}} that makes it easy to quickly sample rows from any object,
+#' including Matrix and sparse matrix objects.
+#' 
+#' Row names are not preserved.
+#' 
+#' @param x object from which to extract elements
+#' @param size a positive number, the number of items to choose.
+#' @param replace Should sampling be with replacement?
+#' @param prob A vector of probability weights for obtaining the elements of the vector being sampled.
+#' @export
+#' @examples
+#' 
+#' #Sampling from a list
+#' l1<-as.list(1:1e6)
+#' b<-sample2(l1,1e5)
+#'
+#' #Sampling from a data frame
+#' orders<-data.frame(orderNum=sample(1e5, 1e6, TRUE),
+#'    sku=sample(1e3, 1e6, TRUE),
+#'    customer=sample(1e4,1e6,TRUE),stringsAsFactors=FALSE)
+#'    
+#' a<-sample2(orders,250000) 
+#' 
+#' #With oversampling sample2 can be much faster than the alternatives,
+#' #with the caveat that it does not preserve row names.
+#' system.time(a<-sample.Matrix(orders,2000000,TRUE))
+#' system.time(b<-orders[sample.int(nrow(orders),2000000,TRUE),])
+#' system.time(c<-dplyr::sample_n(orders,2000000,replace=TRUE))
+#'
+#' #Can quickly sample for sparse matrices while preserving sparsity
+#' sm<-rsparsematrix(20000000,10000,density=.0001)
+#' sm2<-sample2(sm,1000000)
+sample2<-function(x,size,replace=FALSE,prob=NULL)
+{
+  index<-sample.int(len(x),size,replace,prob)
+  return(extract(x,index))
+}
+
+len<-function (data) 
+{
+  result <- ifelse(is.null(nrow(data)), length(data), nrow(data))
+  return(result)
+}
