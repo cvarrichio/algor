@@ -368,17 +368,86 @@ extract<-function(x,i=NULL,j=NULL)
 #' 
 #' #With oversampling sample2 can be much faster than the alternatives,
 #' #with the caveat that it does not preserve row names.
-#' system.time(a<-sample.Matrix(orders,2000000,TRUE))
+#' system.time(a<-sample2(orders,2000000,TRUE))
 #' system.time(b<-orders[sample.int(nrow(orders),2000000,TRUE),])
+#' \dontrun{
+#' 
 #' system.time(c<-dplyr::sample_n(orders,2000000,replace=TRUE))
 #'
 #' #Can quickly sample for sparse matrices while preserving sparsity
 #' sm<-rsparsematrix(20000000,10000,density=.0001)
 #' sm2<-sample2(sm,1000000)
+#' }
 sample2<-function(x,size,replace=FALSE,prob=NULL)
 {
   index<-sample.int(len(x),size,replace,prob)
   return(extract(x,index))
+}
+
+
+#' Convert string representations of numbers in any base to any other base.  
+#'    
+#' @param x a vector of integers or strings to be converted
+#' @param base1 the base of x
+#' @param base2 the base of the output
+#' @seealso \code{\link{as.octmode}}
+#' @seealso \code{\link{as.hexmode}}
+#' @seealso \code{\link{strtoi}}
+#' @export
+#' @examples
+#' 
+#'identical(convertBase(1234,base2=8),as.character(as.octmode(1234)))
+#' 
+#'convertBase(17771,base1=8,base2=30)
+#'convertBase(17771,base1=8,base2=10)
+#'convertBase(8185,base1=10,base2=30)
+#'
+convertBase<-function(x, base1=10, base2=10)
+{
+  if(base1!=10)
+    x<-toBase10(x,base1)
+  if(base2!=10)
+    x<-fromBase10(x,base2)
+  return(x)
+}
+
+toBase10<-function(x,base)
+{
+  if(base>36 | base < 2)
+    stop('This function is only implemented for bases 2-36.')
+  
+  if(base>10)
+    x<-tolower(x)
+  lookup<-c(0:35)
+  names(lookup)<-c(0:9,letters)
+  lookup[(base+1):36]<-NA
+  splits<-strsplit( gsub("(.)","\\1~",x), "~" )
+  results<-unlist(lapply(splits,function (x) sum(lookup[unlist(x)]*(base^(length(x):1-1)))))
+  return(results)
+}
+
+fromBase10<-function(x,base)
+{
+  if(base>36 | base < 2)
+    stop('This function is only implemented for bases 2-36.')
+
+  if(!is.numeric(x))
+    x<-as.integer(x)
+  lookup<-c(0:9,letters)
+  results<-sapply(x, function (x)
+  {
+    answer<-NULL
+    while (x>0)
+    {
+      remainder <- x %% base
+      x <- x %/% base
+      answer<-c(remainder,answer)
+    }
+    result<-lookup[answer+1]
+    result<-paste0(result,collapse = '')
+    return(result)
+  })
+  return(results)
 }
 
 len<-function (data) 

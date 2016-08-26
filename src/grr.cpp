@@ -24,7 +24,6 @@ struct CMP_CHAR {
 } cmp_char;
 
 
-// [[Rcpp::export]]
 extern "C" SEXP sortcpp(SEXP x) {
   
   //std::cout << TYPEOF(x);
@@ -125,7 +124,6 @@ void internalOrder(int* index,SEXP x)
   }
 }
 
-// [[Rcpp::export]]
 extern "C" SEXP ordercpp(SEXP x) {
   
   //std::cout << TYPEOF(x);
@@ -240,7 +238,6 @@ void cmatch(T astart, T bstart, std::vector<int> &indexsA, std::vector<int> &ind
   
 }
 
-// [[Rcpp::export]]
 extern "C" SEXP matches(SEXP a, SEXP b)
 {
   
