@@ -1,12 +1,14 @@
 #' Alternative Implementations of Base R Functions
 #' 
-#' Alternative implementations of some base R functions, including sort, order, and match.  Functions are
-#' simplified but can be faster or have other advantages.  See the documentation of individual functions
-#' for details and benchmarks.
+#' Alternative implementations of some base R functions, including sort, order,
+#' and match.  Functions are simplified but can be faster or have other
+#' advantages.  See the documentation of individual functions for details and
+#' benchmarks.
 #' 
-#' Note that these functions cannot be considered drop-in replacements for the functions in base \code{R}.  
-#' They do not implement all the same parameters and do not work for all data types.  Utilize these 
-#' with caution in specialized applications that require them.
+#' Note that these functions cannot be considered drop-in replacements for the
+#' functions in base \code{R}. They do not implement all the same parameters and
+#' do not work for all data types.  Utilize these with caution in specialized
+#' applications that require them.
 #' 
 #' @name grr
 #' @docType package
@@ -15,9 +17,9 @@ NULL
 
 #' Sorting vectors
 #' 
-#' Simplified implementation of \code{\link{sort}}. For large vectors,
-#' typically is about 2x faster for numbers and 20x faster for characters and
-#' factors.
+#' Simplified implementation of \code{\link{sort}} utilizing parallelized C++.
+#' For large vectors, typically is about 2-10x faster for numbers and 20-100x 
+#' faster for characters and factors (depending on system).
 #' 
 #' @param x a vector of class numeric, integer, character, factor, or logical. 
 #'   Long vectors are not supported.
@@ -48,13 +50,12 @@ NULL
 #' identical(a,b)
 #' 
 #' #How are special values like NA and Inf handled?
-#' #For numerics, values sort intuitively, with the important note that NA and
-#' #NaN will come after all real numbers but before Inf.
-#' sort2(c(1,2,NA,NaN,Inf,-Inf))
+#' #For numerics, values sort correctly with NA and NaN after all real numbers.
+#' sort2(c(NaN,1,2,NA,NaN,Inf,-Inf))
 #' #For characters, values sort correctly with NA at the end.
-#' sort2(c('C','B',NA,'A'))
+#' sort2(c(NA,'C','B',NA,'A'))
 #' #For factors, values sort correctly with NA at the end
-#' sort2(as.factor(c('C','B',NA,'A')))
+#' sort2(as.factor(c(NA,'C','B',NA,'A')))
 #' 
 #' \dontrun{
 #' chars<-as.character(sample(1e5,1e6,TRUE))
@@ -85,10 +86,12 @@ sort2<-function(x)
 
 #' Ordering vectors
 #' 
-#' Simplified implementation of \code{\link{order}}.  For large vectors, typically is about 3x faster for 
-#' numbers and 20x faster for characters.
+#' Simplified implementation of \code{\link{order}} utilizing parallelized C++.
+#' For large vectors, typically is about 2-10x faster for numbers and 20-100x 
+#' faster for characters and factors (depending on system).
 #' 
-#' @param x a vector of class numeric, integer, character, factor, or logical.  Long vectors are not supported.
+#' @param x a vector of class numeric, integer, character, factor, or logical. 
+#'   Long vectors are not supported.
 #' @export
 #' @examples
 #' chars<-as.character(sample(1e3,1e4,TRUE))
@@ -117,13 +120,12 @@ sort2<-function(x)
 #' identical(facts[a],facts[b])
 #' 
 #' #How are special values like NA and Inf handled?
-#' #For numerics, values sort intuitively, with the important note that NA and
-#' #NaN will come after all real numbers but before Inf.
-#' (function (x) x[order2(x)])(c(1,2,NA,NaN,Inf,-Inf))
+#' #For numerics, values sort correctly with NA and NaN after all real numbers.
+#' (function (x) x[order2(x)])(c(NA,1,2,NA,NaN,Inf,-Inf))
 #' #For characters, values sort correctly with NA at the end.
-#' (function (x) x[order2(x)])(c('C','B',NA,'A'))
+#' (function (x) x[order2(x)])(c(NA,'C','B',NA,'A'))
 #' #For factors, values sort correctly with NA at the end.
-#' (function (x) x[order2(x)])(as.factor(c('C','B',NA,'A')))
+#' (function (x) x[order2(x)])(as.factor(c(NA,'C','B',NA,'A')))
 #' 
 #' 
 #' #Ordering a data frame using order2
@@ -319,7 +321,7 @@ matches<-function(x,y,all.x=TRUE,all.y=TRUE,list=FALSE,indexes=TRUE,nomatch=NA)
 #'orders<-data.frame(orderNum=as.character(sample(1e5, 1e6, TRUE)),
 #'  sku=sample(1e3, 1e6, TRUE),
 #'  customer=sample(1e4,1e6,TRUE))
-#'system.time(a<-sample(1e6,1e7,TRUE))
+#'a<-sample(1e6,1e7,TRUE)
 #' system.time(b<-orders[a,])
 #'system.time(c<-extract(orders,a))
 #'}
@@ -343,15 +345,17 @@ extract<-function(x,i=NULL,j=NULL)
   return(x)
 }  
 
-#' A wrapper for \code{\link{sample.int}} and \code{\link[grr]{extract}} that makes it easy to quickly sample rows from any object,
-#' including Matrix and sparse matrix objects.
+#' A wrapper for \code{\link{sample.int}} and \code{\link[grr]{extract}} that
+#' makes it easy to quickly sample rows from any object, including Matrix and
+#' sparse matrix objects.
 #' 
 #' Row names are not preserved.
 #' 
 #' @param x object from which to extract elements
 #' @param size a positive number, the number of items to choose.
 #' @param replace Should sampling be with replacement?
-#' @param prob A vector of probability weights for obtaining the elements of the vector being sampled.
+#' @param prob A vector of probability weights for obtaining the elements of the
+#'   vector being sampled.
 #' @export
 #' @examples
 #' 

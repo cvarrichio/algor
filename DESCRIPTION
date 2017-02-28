@@ -1,6 +1,6 @@
 Package: grr
 Title: Alternative Implementations of Base R Functions
-Version: 0.9.5
+Version: 0.9.9
 Author: Craig Varrichio <canthony427@gmail.com>
 Maintainer: Craig Varrichio <canthony427@gmail.com>
 Description: Alternative implementations of some base R functions, including sort, order, and match.  Functions are simplified but can be faster or have other advantages.

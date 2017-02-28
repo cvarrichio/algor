@@ -2,10 +2,11 @@
 #include <string>
 #include <vector>
 #include <numeric>
-#include <iostream>
-#define R_NO_REMAP 
+#define R_NO_REMAP
 #include <R.h>
 #include <Rdefines.h>
+#include <parallel/algorithm>
+
 
 struct CMP_INT {
   bool operator()(int x, int y) {
@@ -15,13 +16,25 @@ struct CMP_INT {
       return true;
     return x-y < 0;
   }
-};
+} cmp_int;
+
 
 struct CMP_CHAR {
   bool operator()(SEXP x, SEXP y) {
     return strcmp(CHAR(x), CHAR(y)) < 0;
   }
 } cmp_char;
+
+
+struct CMP_REAL2 {
+  bool operator()(double x, double y) {
+    if(!(x==x))
+      return false;
+    if(!(y==y))
+      return true;
+    return x-y < 0;
+  } 
+} cmp_real2;
 
 
 extern "C" SEXP sortcpp(SEXP x) {
@@ -31,13 +44,13 @@ extern "C" SEXP sortcpp(SEXP x) {
   switch(TYPEOF(x))
   {
     case INTSXP:
-      std::sort(INTEGER(x),INTEGER(x)+LENGTH(x));
+      std::sort(INTEGER(x),INTEGER(x)+LENGTH(x), cmp_int);
       break;
     case REALSXP:
-      std::sort(REAL(x),REAL(x)+LENGTH(x));
+      std::sort(REAL(x),REAL(x)+LENGTH(x), cmp_real2);
       break;
     case LGLSXP:
-      std::sort(LOGICAL(x),LOGICAL(x)+LENGTH(x));
+      std::sort(LOGICAL(x),LOGICAL(x)+LENGTH(x), cmp_int);
       break;
     case STRSXP:
       std::sort(STRING_PTR(x), STRING_PTR(x) + LENGTH(x), cmp_char);
@@ -71,6 +84,12 @@ struct CMP_REAL {
   double* start;
   CMP_REAL(double* start) : start(start) {};
   bool operator()(int x, int y) {
+    double a=*(start+x-1);
+    double b=*(start+y-1);
+    if(!(a==a))
+      return false;
+    if(!(b==b))
+      return true;
     return *(start+x-1) - *(start+y-1) < 0;
   }
 };
